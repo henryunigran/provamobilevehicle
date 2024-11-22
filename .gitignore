@@ -1,0 +1,56 @@
+# Flutter
+/.flutter-plugins
+/.flutter-plugins-dependencies
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+# Ignore build directory and any build artifacts
+/build/
+
+# Firebase
+# Ignora arquivos de configuração do Firebase
+google-services.json
+GoogleService-Info.plist
+
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+migrate_working_dir/
+firebase.json  # Ignora o arquivo de configuração do Firebase
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# VS Code settings folder (caso queira ignorar)
+.vscode/
+
+# iOS specific (ignore pods and build artifacts)
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/.last_build_id
+ios/Flutter/flutter_assets/
+
+# Android specific (build artifacts)
+android/.gradle/
+android/app/build/
+android/app/debug/
+android/app/profile/
+android/app/release/
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
