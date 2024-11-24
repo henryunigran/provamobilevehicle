@@ -39,6 +39,23 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _resetPassword() async {
+    String email = _emailController.text;
+
+    if (email.isEmpty) {
+      _showErrorDialog("Por favor, insira seu e-mail para recuperar a senha.");
+      return;
+    }
+
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+      _showInfoDialog(
+          "E-mail de recuperação enviado. Verifique sua caixa de entrada.");
+    } catch (e) {
+      _showErrorDialog("Erro ao enviar e-mail de recuperação: $e");
+    }
+  }
+
   void _showErrorDialog(String errorMessage) {
     showDialog(
       context: context,
@@ -46,6 +63,26 @@ class _LoginScreenState extends State<LoginScreen> {
         return AlertDialog(
           title: Text('Erro'),
           content: Text(errorMessage),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showInfoDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Informação'),
+          content: Text(message),
           actions: <Widget>[
             TextButton(
               onPressed: () {
@@ -105,8 +142,8 @@ class _LoginScreenState extends State<LoginScreen> {
             SizedBox(height: 10),
             GestureDetector(
               onTap: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context)=>SignUpScreen()));
-                print('Ir para tela de cadastro');
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (context) => SignUpScreen()));
               },
               child: Text(
                 'Criar conta',
@@ -115,9 +152,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             SizedBox(height: 10),
             GestureDetector(
-              onTap: () {
-                print('Recuperar senha');
-              },
+              onTap: _resetPassword,
               child: Text(
                 'Esqueceu sua senha?',
                 style: TextStyle(color: Colors.blue),

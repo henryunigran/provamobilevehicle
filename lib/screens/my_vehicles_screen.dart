@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:provamobilevehicle/screens/modules/standart_drawer.dart';
+import 'package:provamobilevehicle/screens/modules/vehicle_info_screen.dart';
 
 class MyVehiclesScreen extends StatefulWidget {
   const MyVehiclesScreen({super.key});
@@ -44,22 +45,21 @@ class _MyVehiclesScreenState extends State<MyVehiclesScreen> {
         return [];
       }
 
-      print("UID do usuário logado: ${_user!.uid}");
-
       QuerySnapshot querySnapshot = await FirebaseFirestore.instance
           .collection('users')
           .doc(_user!.uid)
           .collection('mycars')
           .get();
 
-      print("Número de carros encontrados: ${querySnapshot.docs.length}");
-
       List<Map<String, dynamic>> myCarsList = [];
-      querySnapshot.docs.forEach((doc) {
+      for (var doc in querySnapshot.docs) {
         Map<String, dynamic> carData = doc.data() as Map<String, dynamic>;
         carData['id'] = doc.id;
+        carData['liters'] = carData['liters'] ?? 0;
+        carData['kilometrage'] = carData['kilometrage'] ?? 0;
+        carData['average'] = carData['average'] ?? 0;
         myCarsList.add(carData);
-      });
+      }
 
       return myCarsList;
     } catch (e) {
@@ -67,7 +67,6 @@ class _MyVehiclesScreenState extends State<MyVehiclesScreen> {
       return [];
     }
   }
-
 
   Future<void> _deleteCar(String carId) async {
     try {
@@ -77,87 +76,121 @@ class _MyVehiclesScreenState extends State<MyVehiclesScreen> {
           .collection('mycars')
           .doc(carId)
           .delete();
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+
+      await FirebaseFirestore.instance
+          .collection('cars')
+          .doc(carId)
+          .delete();
+
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('Carro excluído com sucesso'),
       ));
       setState(() {});
     } catch (e) {
       print("Erro ao excluir carro: $e");
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('Erro ao excluir o carro'),
       ));
     }
   }
 
-  Future<void> _editCar(String carId, String? name, String? model, String? year) async {
-    TextEditingController _nameController = TextEditingController(text: name ?? '');
-    TextEditingController _modelController = TextEditingController(text: model ?? '');
-    TextEditingController _yearController = TextEditingController(text: year ?? '');
+  void _showEditDialog(BuildContext context, Map<String, dynamic> car) {
+    final TextEditingController nameController =
+    TextEditingController(text: car['name']);
+    final TextEditingController modelController =
+    TextEditingController(text: car['model']);
+    final TextEditingController litersController =
+    TextEditingController(text: car['liters'].toString());
+    final TextEditingController kilometrageController =
+    TextEditingController(text: car['kilometrage'].toString());
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text("Editar Carro"),
-          content: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: _nameController,
-                decoration: InputDecoration(labelText: "Nome do Carro"),
-              ),
-              TextField(
-                controller: _modelController,
-                decoration: InputDecoration(labelText: "Modelo do Carro"),
-              ),
-              TextField(
-                controller: _yearController,
-                decoration: InputDecoration(labelText: "Ano do Carro"),
-              ),
-            ],
-          ),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: Text("Cancelar"),
+          title: const Text("Editar Informações do Carro"),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(labelText: "Nome"),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: modelController,
+                  decoration: const InputDecoration(labelText: "Modelo"),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: litersController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: "Litros"),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: kilometrageController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: "Quilometragem"),
+                ),
+              ],
             ),
+          ),
+          actions: [
             TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancelar"),
+            ),
+            ElevatedButton(
               onPressed: () async {
+                final updatedName = nameController.text.trim();
+                final updatedModel = modelController.text.trim();
+                final updatedLiters =
+                double.tryParse(litersController.text.trim());
+                final updatedKilometrage =
+                int.tryParse(kilometrageController.text.trim());
+
+                if (updatedLiters == null || updatedKilometrage == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Insira valores válidos.")),
+                  );
+                  return;
+                }
+
                 try {
                   await FirebaseFirestore.instance
                       .collection('users')
                       .doc(_user!.uid)
                       .collection('mycars')
-                      .doc(carId)
+                      .doc(car['id'])
                       .update({
-                    'name': _nameController.text,
-                    'model': _modelController.text,
-                    'year': _yearController.text,
+                    'name': updatedName,
+                    'model': updatedModel,
+                    'liters': updatedLiters,
+                    'kilometrage': updatedKilometrage,
                   });
+
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    content: Text("Informações atualizadas com sucesso."),
+                  ));
                   Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    content: Text('Carro atualizado com sucesso'),
-                  ));
                   setState(() {});
-                } catch (e) {
-                  print("Erro ao editar carro: $e");
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    content: Text('Erro ao editar o carro'),
-                  ));
+                } catch (error) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text("Erro ao atualizar o carro: $error"),
+                    ),
+                  );
                 }
               },
-              child: Text("Salvar"),
+              child: const Text("Salvar"),
             ),
           ],
         );
       },
     );
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -171,19 +204,18 @@ class _MyVehiclesScreenState extends State<MyVehiclesScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Bem-vindo, $_userName!', style: TextStyle(fontSize: 24)),
-            SizedBox(height: 20),
-            Text('Seus carros:', style: TextStyle(fontSize: 20)),
             Expanded(
               child: FutureBuilder<List<Map<String, dynamic>>>(
                 future: _getMyCars(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return Center(child: CircularProgressIndicator());
+                    return const Center(child: CircularProgressIndicator());
                   } else if (snapshot.hasError) {
-                    return Center(child: Text('Erro ao carregar seus carros'));
+                    return const Center(
+                        child: Text('Erro ao carregar seus carros'));
                   } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return Center(child: Text('Você não tem carros cadastrados.'));
+                    return const Center(
+                        child: Text('Você não tem carros cadastrados.'));
                   } else {
                     List<Map<String, dynamic>> myCars = snapshot.data!;
                     return ListView.builder(
@@ -191,21 +223,31 @@ class _MyVehiclesScreenState extends State<MyVehiclesScreen> {
                       itemBuilder: (context, index) {
                         var car = myCars[index];
                         return Card(
-                          margin: EdgeInsets.symmetric(vertical: 8),
+                          margin: const EdgeInsets.symmetric(vertical: 8),
                           child: ListTile(
                             title: Text(car['name'] ?? 'Nome desconhecido'),
-                            subtitle: Text('Modelo: ${car['model'] ?? 'Desconhecido'}'),
+                            subtitle:
+                            Text('Modelo: ${car['model'] ?? 'Desconhecido'}'),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      VehicleInfoScreen(car: car),
+                                ),
+                              );
+                            },
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 IconButton(
-                                  icon: Icon(Icons.edit),
+                                  icon: const Icon(Icons.edit),
                                   onPressed: () {
-                                    _editCar(car['id'], car['name'], car['model'], car['year']);
+                                    _showEditDialog(context, car);
                                   },
                                 ),
                                 IconButton(
-                                  icon: Icon(Icons.delete),
+                                  icon: const Icon(Icons.delete),
                                   onPressed: () {
                                     _deleteCar(car['id']);
                                   },

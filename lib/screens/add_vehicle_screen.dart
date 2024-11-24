@@ -11,12 +11,15 @@ class AddVehicleScreen extends StatefulWidget {
 }
 
 class _AddVehicleScreenState extends State<AddVehicleScreen> {
-  GlobalKey _formkey = GlobalKey<FormState>();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
-  TextEditingController _nameController = TextEditingController();
-  TextEditingController _modelController = TextEditingController();
-  TextEditingController _yearController = TextEditingController();
-  TextEditingController _placaController = TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _modelController = TextEditingController();
+  final TextEditingController _yearController = TextEditingController();
+  final TextEditingController _placaController = TextEditingController();
+  final TextEditingController _litersController = TextEditingController();
+  final TextEditingController _kilometrageController = TextEditingController();
+  final TextEditingController _averageController = TextEditingController();
 
   Future<void> _addVehicle() async {
     try {
@@ -29,24 +32,36 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
         String model = _modelController.text;
         String year = _yearController.text;
         String placa = _placaController.text;
+        double liters = double.tryParse(_litersController.text) ?? 0.0;
+        int kilometrage = int.tryParse(_kilometrageController.text) ?? 0;
+        double average = double.tryParse(_averageController.text) ?? 0.0;
 
-        await FirebaseFirestore.instance.collection('cars').add({
+        DocumentReference carRef = await FirebaseFirestore.instance.collection('cars').add({
           'name': name,
           'model': model,
           'year': year,
           'placa': placa,
+          'liters': liters,
+          'kilometrage': kilometrage,
+          'average': average,
           'createdAt': FieldValue.serverTimestamp(),
         });
+
+        String carId = carRef.id;
 
         await FirebaseFirestore.instance
             .collection('users')
             .doc(uid)
             .collection('mycars')
-            .add({
+            .doc(carId)
+            .set({
           'name': name,
           'model': model,
           'year': year,
           'placa': placa,
+          'liters': liters,
+          'kilometrage': kilometrage,
+          'average': average,
           'createdAt': FieldValue.serverTimestamp(),
         });
 
@@ -58,6 +73,9 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
         _modelController.clear();
         _yearController.clear();
         _placaController.clear();
+        _litersController.clear();
+        _kilometrageController.clear();
+        _averageController.clear();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Usuário não autenticado!')),
@@ -74,56 +92,100 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Registrar veículo"),
+        title: const Text("Registrar veículo"),
       ),
-      drawer: StandartDrawer(),
+      drawer: const StandartDrawer(),
       body: Form(
-        key: _formkey,
+        key: _formKey,
         child: Padding(
           padding: const EdgeInsets.all(8.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(height: 10),
-              TextFormField(
-                controller: _nameController,
-                decoration: InputDecoration(
-                  labelText: 'Nome',
-                  border: OutlineInputBorder(),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Nome',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) =>
+                  value == null || value.isEmpty ? 'Informe o nome' : null,
                 ),
-              ),
-              SizedBox(height: 10),
-              TextFormField(
-                controller: _modelController,
-                decoration: InputDecoration(
-                  labelText: 'Modelo',
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: _modelController,
+                  decoration: const InputDecoration(
+                    labelText: 'Modelo',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) =>
+                  value == null || value.isEmpty ? 'Informe o modelo' : null,
                 ),
-              ),
-              SizedBox(height: 10),
-              TextFormField(
-                controller: _yearController,
-                decoration: InputDecoration(
-                  labelText: 'Ano',
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: _yearController,
+                  decoration: const InputDecoration(
+                    labelText: 'Ano',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) =>
+                  value == null || value.isEmpty ? 'Informe o ano' : null,
                 ),
-              ),
-              SizedBox(height: 10),
-              TextFormField(
-                controller: _placaController,
-                decoration: InputDecoration(
-                  labelText: 'Placa',
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: _placaController,
+                  decoration: const InputDecoration(
+                    labelText: 'Placa',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) =>
+                  value == null || value.isEmpty ? 'Informe a placa' : null,
                 ),
-              ),
-            ],
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: _litersController,
+                  decoration: const InputDecoration(
+                    labelText: 'Litros iniciais',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.number,
+                  validator: (value) =>
+                  value == null || value.isEmpty ? 'Informe os litros' : null,
+                ),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: _kilometrageController,
+                  decoration: const InputDecoration(
+                    labelText: 'Quilometragem inicial',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.number,
+                  validator: (value) => value == null || value.isEmpty
+                      ? 'Informe a quilometragem'
+                      : null,
+                ),
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: _averageController,
+                  decoration: const InputDecoration(
+                    labelText: 'Média inicial',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.number,
+                  validator: (value) =>
+                  value == null || value.isEmpty ? 'Informe a média' : null,
+                ),
+              ],
+            ),
           ),
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        label: Text("Cadastrar"),
-        icon: Icon(Icons.add),
+        label: const Text("Cadastrar"),
+        icon: const Icon(Icons.add),
         onPressed: _addVehicle,
       ),
     );

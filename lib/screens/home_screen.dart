@@ -61,7 +61,6 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Carros cadastrados:', style: TextStyle(fontSize: 20)),
             Expanded(
               child: FutureBuilder<List<Map<String, dynamic>>>(
                 future: _getCars(),
